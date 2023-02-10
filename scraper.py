@@ -1,32 +1,26 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-c = DesiredCapabilities.CHROME
-c["pageLoadStrategy"] = "none"
-
+import undetected_chromedriver as uc
 import bs4
 
-chrome_options = Options()
-chrome_options.add_argument("--headless")
 
-driver = webdriver.Chrome("/usr/lib/chromium-browser/chromedriver", desired_capabilities=c)
-for x in range(1,10):
-    w = WebDriverWait(driver, 15)
+driver = uc.Chrome(use_subprocess=True)
+for x in range(1,650):
     driver.get("https://www.futbin.com/players?page="+str(x))
-    w.until(lambda driver: driver.find_elements(By.CLASS_NAME, "player_tr_1") and driver.find_elements(By.CLASS_NAME, "player_tr_2"))
+    # Waiting for class element to load to stop loading the whole page
+    w = WebDriverWait(driver, 15)
+    w.until(EC.presence_of_element_located((By.CLASS_NAME, "player_tr_1")))
+    # Parsing page HTML to BeautifulSoup
     html = driver.page_source
     soup = bs4.BeautifulSoup(html, 'html.parser')
     numbers = [1,2]
-    print("Currently in page {}".format(x))
+    players = []
+    # Extracting all player links from html using BeautifulSoup
     for number in numbers:
-        players = soup.findAll('tr', 'player_tr_'+str(number))
+        players.extend(soup.findAll('tr', 'player_tr_'+str(number)))
     print('Found {} players in page {}'.format(len(players), x))
-    counter = 0
+    # Writing player links to file
     for player in players:
         with open("playerLinks.txt", 'a') as file:
             file.write("https://www.futbin.com"+player['data-url']+"\n")
-        #print(player['data-url'])
